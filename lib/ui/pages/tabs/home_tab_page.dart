@@ -3,16 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tictok_clone_app/notifiers/home_notifier.dart';
 import 'package:tictok_clone_app/notifiers/home_tab_notifier.dart';
+import 'package:tictok_clone_app/ui/pages/home/recommend_page.dart';
 
-class HomeTabPage extends ConsumerWidget {
+class HomeTabPage extends ConsumerStatefulWidget {
   const HomeTabPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeTabPage> createState() => _HomeTabPageState();
+}
+
+class _HomeTabPageState extends ConsumerState<HomeTabPage> {
+  // final List<VideoPlayerController> _controllers = [];
+
+  Future<void> _loadShorts() async {
+    final shortList = await ref
+        .read(homeTabNotifierProvider.notifier)
+        .getShortListRequest();
+
+    await ref.read(homeTabNotifierProvider.notifier).setVideo(shortList);
+
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(_loadShorts);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final homeTabNotifier = ref.read(homeTabNotifierProvider.notifier);
     final homeTabState = ref.watch(homeTabNotifierProvider);
 
     final homeState = ref.watch(homeNotifierProvider);
+
+    if (homeTabNotifier.videoPlayerControllers.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Container(
       color: homeState.isDark ? Colors.black : Colors.white,
@@ -41,19 +70,12 @@ class HomeTabPage extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Center(
-                  child: Text(
-                    "추천",
-                    style: TextStyle(
-                      color: homeState.isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
+                // 추천 탭
+                const RecommendPage(),
               ],
             ),
           ),
           Positioned(
-            top: 20.h,
             left: 5.w,
             right: 5.w,
             child: SizedBox(
@@ -75,7 +97,7 @@ class HomeTabPage extends ConsumerWidget {
                     children: List.generate(homeTabNotifier.tabs.length, (
                       index,
                     ) {
-                      final selected = index == homeTabState;
+                      final selected = index == homeTabState.currentIndex;
 
                       return GestureDetector(
                         onTap: () => homeTabNotifier.changeTab(index),
